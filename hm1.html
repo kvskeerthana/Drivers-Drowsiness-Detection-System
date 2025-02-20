@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drowsiness and Yawning Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #video-container {
+            margin: 20px auto;
+            width: 640px;
+        }
+        #video {
+            width: 100%;
+            border: 2px solid #333;
+        }
+        #status {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        #alert-message {
+            color: red;
+            font-size: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drowsiness and Yawning Detection</h1>
+    <div id="video-container">
+        <video id="video" autoplay muted></video>
+    </div>
+    <div id="status">Status: Initializing...</div>
+    <div id="alert-message"></div>
+
+    <script>
+        // Function to display alert message
+        function showAlert(message) {
+            document.getElementById('alert-message').innerText = message;
+        }
+
+        // Function to update status message
+        function updateStatus(status) {
+            document.getElementById('status').innerText = "Status: " + status;
+        }
+
+        // Accessing webcam and displaying video feed
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                var video = document.getElementById('video');
+                video.srcObject = stream;
+                video.play();
+
+                // Update status once video is loaded
+                updateStatus("Video Loaded");
+            })
+            .catch(function(error) {
+                console.error('Error accessing the webcam:', error);
+                updateStatus("Error: Webcam Access Failed");
+            });
+
+        // Event listener for key press
+        document.addEventListener('keydown', function(event) {
+            // Press 'q' to quit
+            if (event.key === 'q') {
+                window.close(); // Close the window
+            }
+        });
+    </script>
+</body>
+</html>
