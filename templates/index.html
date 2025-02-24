@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drowsiness Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5efe6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        video, canvas {
+            border: 4px solid #000;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            height: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        button {
+            margin: 15px;
+            padding: 12px 24px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #alert-box {
+            color: red;
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Drowsiness Detection System</h1>
+
+    <video id="videoElement" autoplay></video>
+    <canvas id="canvasElement" style="display:none;"></canvas>
+
+    <br>
+
+    <button onclick="startDetection()">Start Detection</button>
+    <button onclick="stopDetection()">Stop Detection</button>
+
+    <div id="alert-box"></div>
+
+    <!-- Alert sound -->
+    <audio id="alertSound">
+        <source src="https://www.fesliyanstudios.com/play-mp3/4380" type="audio/mp3">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        let video = document.getElementById("videoElement");
+        let canvas = document.getElementById("canvasElement");
+        let ctx = canvas.getContext("2d");
+        let alertBox = document.getElementById("alert-box");
+        let alertSound = document.getElementById("alertSound");
+        let detectionActive = false;
+        let stream = null;
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.log("Error accessing camera:", err);
+            }
+        }
+
+        function startDetection() {
+            detectionActive = true;
+            startCamera();
+            processFrame();
+        }
+
+        function stopDetection() {
+            detectionActive = false;
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+
+        function playAlertSound() {
+            alertSound.pause();
+            alertSound.currentTime = 0;
+            alertSound.play().then(() => {
+                console.log("Alert sound played!");
+            }).catch(error => {
+                console.log("Autoplay blocked. Click to enable sound.");
+                document.addEventListener("click", enableSound, { once: true });
+            });
+        }
+
+        function enableSound() {
+            alertSound.play().catch(error => {
+                console.log("Error playing sound:", error);
+                fallbackBeep();
+            });
+        }
+
+        function fallbackBeep() {
+            let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let oscillator = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = "square";
+            oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+            }, 500);
+        }
+        
+        function processFrame() {
+            if (!detectionActive) return;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let frameData = canvas.toDataURL("image/jpeg");
+
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: frameData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.alert === "Drowsy") {
+                    alertBox.innerHTML = "⚠️ DROWSINESS ALERT!";
+                    playAlertSound();
+                } else if (data.alert === "Yawning") {
+                    alertBox.innerHTML = "⚠️ YAWN ALERT!";
+                    playAlertSound();
+                } else {
+                    alertBox.innerHTML = "";
+                }
+            });
+
+            setTimeout(processFrame, 1000);
+        }
+    </script>
+
+</body>
+</html>

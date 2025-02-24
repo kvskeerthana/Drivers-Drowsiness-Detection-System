@@ -26,49 +26,51 @@
             font-size: 20px;
             margin-top: 10px;
         }
+        .control-buttons {
+            margin-top: 20px;
+        }
+        .control-buttons button {
+            font-size: 18px;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>Drowsiness and Yawning Detection</h1>
     <div id="video-container">
-        <video id="video" autoplay muted></video>
+        <img id="video" src="{{ url_for('video_feed') }}">
     </div>
-    <div id="status">Status: Initializing...</div>
+    <div id="status">Status: Waiting...</div>
     <div id="alert-message"></div>
+    
+    <div class="control-buttons">
+        <button onclick="startDetection()">Start Detection</button>
+        <button onclick="stopDetection()">Stop Detection</button>
+    </div>
 
     <script>
-        // Function to display alert message
         function showAlert(message) {
             document.getElementById('alert-message').innerText = message;
         }
 
-        // Function to update status message
         function updateStatus(status) {
             document.getElementById('status').innerText = "Status: " + status;
         }
 
-        // Accessing webcam and displaying video feed
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                var video = document.getElementById('video');
-                video.srcObject = stream;
-                video.play();
+        function startDetection() {
+            fetch("/start_detection", { method: "POST" })
+                .then(response => response.text())
+                .then(data => updateStatus(data));
+        }
 
-                // Update status once video is loaded
-                updateStatus("Video Loaded");
-            })
-            .catch(function(error) {
-                console.error('Error accessing the webcam:', error);
-                updateStatus("Error: Webcam Access Failed");
-            });
-
-        // Event listener for key press
-        document.addEventListener('keydown', function(event) {
-            // Press 'q' to quit
-            if (event.key === 'q') {
-                window.close(); // Close the window
-            }
-        });
+        function stopDetection() {
+            fetch("/stop_detection", { method: "POST" })
+                .then(response => response.text())
+                .then(data => updateStatus(data));
+        }
     </script>
 </body>
 </html>
+
